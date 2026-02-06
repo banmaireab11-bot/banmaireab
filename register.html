@@ -17,12 +17,26 @@
 
 <body class="min-h-screen flex items-center justify-center px-4">
 
-<!-- Loading -->
-<div id="loading" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-  <div class="bg-white px-6 py-4 rounded shadow text-lg">
-    Processing...
+<!-- ================= Loading Overlay ================= -->
+<div id="loading" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-sky-900/40 backdrop-blur-sm"></div>
+
+  <div class="relative bg-white rounded-xl shadow-xl px-8 py-6 w-80 text-center">
+    <div class="flex justify-center mb-4">
+      <div class="w-14 h-14 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
+    </div>
+
+    <div class="text-sky-600 text-3xl mb-2">📤</div>
+
+    <p id="loadingTitle" class="text-lg font-semibold text-gray-800">
+      กำลังอัปโหลดสลิป
+    </p>
+    <p id="loadingSub" class="text-sm text-gray-500 mt-1">
+      กรุณารอสักครู่ อย่าปิดหน้านี้
+    </p>
   </div>
 </div>
+<!-- =================================================== -->
 
 <div class="w-full max-w-xl bg-white rounded-xl shadow-lg overflow-hidden">
 
@@ -119,7 +133,9 @@ const i18n = {
     submit: "สมัครเข้าร่วม",
     success: "สมัครเรียบร้อยแล้ว",
     dup: "เลขบัตรประชาชนนี้สมัครแล้ว",
-    cidErr: "เลขบัตรประชาชนต้องเป็น 13 หลัก"
+    cidErr: "เลขบัตรประชาชนต้องเป็น 13 หลัก",
+    loadingTitle: "กำลังอัปโหลดสลิป",
+    loadingSub: "กรุณารอสักครู่ อย่าปิดหน้านี้"
   },
   en: {
     title: "Race Registration – Ban Mai Riab School",
@@ -135,7 +151,9 @@ const i18n = {
     submit: "Register",
     success: "Registration completed",
     dup: "This citizen ID is already registered",
-    cidErr: "Citizen ID must be 13 digits"
+    cidErr: "Citizen ID must be 13 digits",
+    loadingTitle: "Uploading payment slip",
+    loadingSub: "Please wait. Do not close this page."
   }
 }
 
@@ -149,6 +167,8 @@ function setLang(lang){
   document.getElementById("subtitle").innerText = i18n[lang].subtitle
   document.getElementById("submitBtn").innerText = i18n[lang].submit
   document.getElementById("slipLabel").innerText = i18n[lang].slip
+  document.getElementById("loadingTitle").innerText = i18n[lang].loadingTitle
+  document.getElementById("loadingSub").innerText = i18n[lang].loadingSub
 
   document.querySelectorAll("[data-i18n]").forEach(el=>{
     el.innerText = i18n[lang][el.dataset.i18n]
