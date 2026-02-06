@@ -202,13 +202,15 @@ async function approve(id){
 
   if(!confirm.isConfirmed) return
 
-  const user = allData.find(u => u.id === id)
-  if(!user){
+  const userIndex = allData.findIndex(u => u.id === id)
+  if(userIndex === -1){
     Swal.fire("Error", "ไม่พบข้อมูลผู้สมัคร", "error")
     return
   }
 
-  // 1) update status
+  const user = allData[userIndex]
+
+  /* 1) update status ใน DB */
   const { error } = await sb
     .from("registrations")
     .update({ status: "approved" })
@@ -219,7 +221,13 @@ async function approve(id){
     return
   }
 
-  // 2) send email
+  /* ✅ 2) update state ฝั่งหน้าเว็บทันที */
+  allData[userIndex].status = "approved"
+
+  renderDashboard(allData)
+  applyFilter()
+
+  /* 3) ส่ง Email (ไม่บล็อก UI) */
   emailjs.send(
     EMAIL_SERVICE_ID,
     EMAIL_TEMPLATE_ID,
@@ -243,6 +251,7 @@ async function approve(id){
     )
   })
 }
+
 
 /* ================= VIEW IMAGE ================= */
 function viewImage(url){
