@@ -25,8 +25,12 @@
       <div class="w-14 h-14 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
     </div>
     <div class="text-sky-600 text-3xl mb-2">📤</div>
-    <p id="loadingTitle" class="text-lg font-semibold">กำลังอัปโหลดสลิป</p>
-    <p id="loadingSub" class="text-sm text-gray-500">กรุณารอสักครู่ อย่าปิดหน้านี้</p>
+    <p id="loadingTitle" class="text-lg font-semibold">
+      กำลังอัปโหลดสลิป
+    </p>
+    <p id="loadingSub" class="text-sm text-gray-500">
+      กรุณารอสักครู่ อย่าปิดหน้านี้
+    </p>
   </div>
 </div>
 
@@ -40,13 +44,14 @@
   <p id="subtitle" class="text-center text-sm mt-1">
     ระบบรับสมัครอย่างเป็นทางการ
   </p>
+
   <div class="absolute top-4 right-4 flex gap-2 text-sm">
     <button onclick="setLang('th')" class="px-2 py-1 bg-white/20 rounded">TH</button>
     <button onclick="setLang('en')" class="px-2 py-1 bg-white/20 rounded">EN</button>
   </div>
 </div>
 
-<!-- Form -->
+<!-- ================= Form ================= -->
 <form id="registerForm" class="p-6 space-y-4">
 
 <select id="prefix" class="w-full border rounded px-3 py-2" required>
@@ -75,7 +80,8 @@
   required>
 
 <textarea id="address" class="w-full border rounded px-3 py-2"
-  data-i18n-placeholder="address" required></textarea>
+  data-i18n-placeholder="address"
+  required></textarea>
 
 <select id="blood_group" class="w-full border rounded px-3 py-2" required>
   <option value="" data-i18n="blood">กรุ๊ปเลือด</option>
@@ -84,7 +90,8 @@
 
 <input id="email" type="email"
   class="w-full border rounded px-3 py-2"
-  data-i18n-placeholder="email" required>
+  data-i18n-placeholder="email"
+  required>
 
 <div>
   <label id="slipLabel" class="block text-sm mb-1">
@@ -108,21 +115,28 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 /* ================= VALIDATION ================= */
-// 🇹🇭 Thai Citizen ID (Checksum)
 function isValidThaiCitizenID(id){
   if(!/^\d{13}$/.test(id)) return false
   let sum = 0
   for(let i=0;i<12;i++){
-    sum += parseInt(id[i]) * (13 - i)
+    sum += parseInt(id[i],10) * (13 - i)
   }
   const check = (11 - (sum % 11)) % 10
-  return check === parseInt(id[12])
+  return check === parseInt(id[12],10)
 }
 
-// 🇹🇭 + 🌍 Citizen ID or Passport
-function isValidCitizenOrPassport(v){
-  if(isValidThaiCitizenID(v)) return true
-  if(/^[A-Za-z0-9]{6,20}$/.test(v)) return true
+function isValidCitizenOrPassport(value){
+  // ตัวเลขล้วน
+  if (/^\d+$/.test(value)) {
+    if (value.length === 13) {
+      return isValidThaiCitizenID(value)
+    }
+    return false
+  }
+  // Passport ต้องมีตัวอักษรอย่างน้อย 1 ตัว
+  if (/^(?=.*[A-Za-z])[A-Za-z0-9]{6,20}$/.test(value)) {
+    return true
+  }
   return false
 }
 
@@ -133,93 +147,119 @@ function isValidPhone(p){
 /* ================= I18N ================= */
 const i18n = {
   th:{
-    prefix:"คำนำหน้า",fname:"ชื่อ",lname:"นามสกุล",phone:"เบอร์โทรศัพท์",
+    prefix:"คำนำหน้า",
+    fname:"ชื่อ",
+    lname:"นามสกุล",
+    phone:"เบอร์โทรศัพท์",
     cid:"เลขบัตรประชาชน / Passport",
-    address:"ที่อยู่",blood:"กรุ๊ปเลือด",email:"อีเมล",slip:"แนบสลิป",
+    address:"ที่อยู่",
+    blood:"กรุ๊ปเลือด",
+    email:"อีเมล",
+    slip:"แนบสลิปการโอนเงิน",
     submit:"สมัครเข้าร่วม",
     cidErr:"กรุณากรอกเลขบัตรประชาชนที่ถูกต้อง หรือ Passport ที่ถูกต้อง",
     phoneErr:"เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก",
     successTitle:"ลงทะเบียนสำเร็จ",
-    successMsg:"ระบบได้รับข้อมูลการสมัครของท่านเรียบร้อยแล้ว\nกรุณารอการตรวจสอบและอนุมัติจากเจ้าหน้าที่\nจะแจ้งผลผ่านอีเมลอีกครั้ง"
+    successMsg:"ระบบได้รับข้อมูลการสมัครของท่านเรียบร้อยแล้ว กรุณารอการตรวจสอบและอนุมัติจากเจ้าหน้าที่ ผลการอนุมัติจะแจ้งให้ทราบทางอีเมล"
   },
   en:{
-    prefix:"Title",fname:"First Name",lname:"Last Name",phone:"Phone",
+    prefix:"Title",
+    fname:"First Name",
+    lname:"Last Name",
+    phone:"Phone",
     cid:"Citizen ID / Passport",
-    address:"Address",blood:"Blood Group",email:"Email",slip:"Payment Slip",
+    address:"Address",
+    blood:"Blood Group",
+    email:"Email",
+    slip:"Payment Slip",
     submit:"Register",
-    cidErr:"Please enter a valid Citizen ID or Passport",
+    cidErr:"Please enter a valid Thai Citizen ID or Passport number",
     phoneErr:"Phone number must be 10 digits",
     successTitle:"Registration Successful",
-    successMsg:"Your registration has been submitted.\nPlease wait for approval.\nResult will be sent via email."
+    successMsg:"Your registration has been submitted. Please wait for approval. You will be notified via email."
   }
 }
 
-let currentLang="th"
-function setLang(l){
-  currentLang=l
-  document.querySelectorAll("[data-i18n]").forEach(e=>{
-    e.innerText=i18n[l][e.dataset.i18n]
+let currentLang = "th"
+
+function setLang(lang){
+  currentLang = lang
+  document.documentElement.lang = lang
+
+  title.innerText = i18n[lang].title || title.innerText
+  subtitle.innerText = i18n[lang].subtitle || subtitle.innerText
+  submitBtn.innerText = i18n[lang].submit
+  slipLabel.innerText = i18n[lang].slip
+
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    el.innerText = i18n[lang][el.dataset.i18n]
   })
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(e=>{
-    e.placeholder=i18n[l][e.dataset.i18nPlaceholder]
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
+    el.placeholder = i18n[lang][el.dataset.i18nPlaceholder]
   })
-  submitBtn.innerText=i18n[l].submit
-  slipLabel.innerText=i18n[l].slip
 }
 
 /* ================= FORM ================= */
-const loading=document.getElementById("loading")
-const showLoading=v=>loading.classList.toggle("hidden",!v)
+const loading = document.getElementById("loading")
+const showLoading = v => loading.classList.toggle("hidden", !v)
 
-registerForm.addEventListener("submit",async e=>{
+registerForm.addEventListener("submit", async e=>{
   e.preventDefault()
   showLoading(true)
 
-  const cid=citizen_id.value.trim()
-  const phoneVal=phone.value.trim()
+  const cid = citizen_id.value.trim()
+  const phoneVal = phone.value.trim()
 
   if(!isValidCitizenOrPassport(cid)){
     showLoading(false)
-    Swal.fire("Error",i18n[currentLang].cidErr,"error")
+    Swal.fire("Error", i18n[currentLang].cidErr, "error")
     return
   }
 
   if(!isValidPhone(phoneVal)){
     showLoading(false)
-    Swal.fire("Error",i18n[currentLang].phoneErr,"error")
+    Swal.fire("Error", i18n[currentLang].phoneErr, "error")
     return
   }
 
-  const {data:dup}=await sb
+  const { data: dup } = await sb
     .from("registrations")
     .select("id")
-    .eq("citizen_id",cid)
+    .eq("citizen_id", cid)
 
   if(dup.length){
     showLoading(false)
-    Swal.fire("Warning","ข้อมูลนี้สมัครแล้ว","warning")
+    Swal.fire("Warning", "ข้อมูลนี้สมัครแล้ว", "warning")
     return
   }
 
-  const filePath=`${cid}_${Date.now()}.jpg`
-  await sb.storage.from("payment-slips").upload(filePath,slip.files[0])
-  const slip_url=sb.storage.from("payment-slips").getPublicUrl(filePath).data.publicUrl
+  const filePath = `${cid}_${Date.now()}.jpg`
+  await sb.storage.from("payment-slips").upload(filePath, slip.files[0])
+
+  const slip_url = sb.storage
+    .from("payment-slips")
+    .getPublicUrl(filePath).data.publicUrl
 
   await sb.from("registrations").insert({
-    prefix:prefix.value,
-    first_name:first_name.value,
-    last_name:last_name.value,
-    phone:phoneVal,
-    citizen_id:cid,
-    address:address.value,
-    blood_group:blood_group.value,
-    email:email.value,
+    prefix: prefix.value,
+    first_name: first_name.value,
+    last_name: last_name.value,
+    phone: phoneVal,
+    citizen_id: cid,
+    address: address.value,
+    blood_group: blood_group.value,
+    email: email.value,
     slip_url,
-    status:"pending"
+    status: "pending"
   })
 
   showLoading(false)
-  Swal.fire(i18n[currentLang].successTitle,i18n[currentLang].successMsg,"success")
+  Swal.fire(
+    i18n[currentLang].successTitle,
+    i18n[currentLang].successMsg,
+    "success"
+  )
+
   e.target.reset()
 })
 
