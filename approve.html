@@ -28,7 +28,7 @@
 </div>
 
 <!-- ================= Dashboard ================= -->
-<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 
   <div class="bg-white rounded-xl shadow p-5 border-l-4 border-sky-600">
     <p class="text-gray-500">ผู้สมัครทั้งหมด</p>
@@ -47,6 +47,20 @@
 
 </div>
 
+<!-- ================= Filter ================= -->
+<div class="max-w-7xl mx-auto mb-6 flex items-center gap-3">
+  <label class="text-gray-700 font-medium">
+    กรองตามสถานะ:
+  </label>
+  <select id="statusFilter"
+    class="border rounded px-3 py-2"
+    onchange="applyFilter()">
+    <option value="all">ทั้งหมด</option>
+    <option value="pending">รออนุมัติ</option>
+    <option value="approved">อนุมัติแล้ว</option>
+  </select>
+</div>
+
 <!-- ================= Cards ================= -->
 <div class="max-w-7xl mx-auto">
   <div id="cardList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -61,6 +75,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const cardList = document.getElementById("cardList")
+let allData = []
 
 /* ================= LOAD DATA ================= */
 async function loadData(){
@@ -74,8 +89,9 @@ async function loadData(){
     return
   }
 
-  renderDashboard(data)
-  renderCards(data)
+  allData = data
+  renderDashboard(allData)
+  applyFilter()
 }
 
 /* ================= DASHBOARD ================= */
@@ -89,9 +105,30 @@ function renderDashboard(data){
   document.getElementById("pendingCount").innerText = pending
 }
 
+/* ================= FILTER ================= */
+function applyFilter(){
+  const status = document.getElementById("statusFilter").value
+
+  let filtered = allData
+  if(status !== "all"){
+    filtered = allData.filter(d => d.status === status)
+  }
+
+  renderCards(filtered)
+}
+
 /* ================= CARDS ================= */
 function renderCards(data){
   cardList.innerHTML = ""
+
+  if(data.length === 0){
+    cardList.innerHTML = `
+      <div class="col-span-full text-center text-gray-500">
+        ไม่พบข้อมูลผู้สมัคร
+      </div>
+    `
+    return
+  }
 
   data.forEach(d => {
     const statusColor = d.status === "approved"
@@ -119,11 +156,13 @@ function renderCards(data){
         </h3>
 
         <p class="text-sm text-gray-600 mt-1">
-          เลขบัตร / Passport: <span class="font-medium">${d.citizen_id}</span>
+          เลขบัตร / Passport:
+          <span class="font-medium">${d.citizen_id}</span>
         </p>
 
         <p class="text-sm text-gray-600">
-          โทรศัพท์: <span class="font-medium">${d.phone}</span>
+          โทรศัพท์:
+          <span class="font-medium">${d.phone}</span>
         </p>
 
         <div class="mt-3">
@@ -138,7 +177,7 @@ function renderCards(data){
   })
 }
 
-/* ================= ACTIONS ================= */
+/* ================= ACTION ================= */
 async function approve(id){
   const confirm = await Swal.fire({
     title: "ยืนยันการอนุมัติ",
@@ -156,7 +195,6 @@ async function approve(id){
     .eq("id", id)
 
   Swal.fire("สำเร็จ", "อนุมัติเรียบร้อยแล้ว", "success")
-  loadData()
 }
 
 /* ================= VIEW IMAGE ================= */
@@ -168,6 +206,18 @@ function viewImage(url){
   })
 }
 
+/* ================= REALTIME ================= */
+sb.channel("registrations-realtime")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "registrations" },
+    payload => {
+      loadData()
+    }
+  )
+  .subscribe()
+
+/* ================= INIT ================= */
 loadData()
 </script>
 
