@@ -140,7 +140,8 @@ const i18n = {
     email: "อีเมล",
     slip: "แนบสลิปการโอนเงิน",
     submit: "สมัครเข้าร่วม",
-    success: "สมัครเรียบร้อยแล้ว",
+    successTitle: "ลงทะเบียนสำเร็จ",
+    successMsg: "ระบบได้รับข้อมูลการสมัครของท่านเรียบร้อยแล้ว\nกรุณารอการตรวจสอบและอนุมัติจากเจ้าหน้าที่\nทั้งนี้ จะแจ้งผลให้ทราบอีกครั้งเมื่อการอนุมัติเสร็จสมบูรณ์",
     dup: "เลขบัตรประชาชนนี้สมัครแล้ว",
     cidErr: "เลขบัตรประชาชนต้องเป็น 13 หลัก",
     phoneErr: "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก",
@@ -160,7 +161,8 @@ const i18n = {
     email: "Email",
     slip: "Upload Payment Slip",
     submit: "Register",
-    success: "Registration completed",
+    successTitle: "Registration Successful",
+    successMsg: "Your application has been successfully submitted.\nPlease wait for verification and approval by the administrator.\nYou will be notified once the approval process is completed.",
     dup: "This citizen ID is already registered",
     cidErr: "Citizen ID must be 13 digits",
     phoneErr: "Phone number must be 10 digits",
@@ -263,7 +265,13 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
   })
 
   showLoading(false)
-  Swal.fire("Success", i18n[currentLang].success, "success")
+  Swal.fire({
+  icon: "success",
+  title: i18n[currentLang].successTitle,
+  text: i18n[currentLang].successMsg,
+  confirmButtonText: currentLang === "th" ? "ตกลง" : "OK"
+})
+
   e.target.reset()
 })
 
