@@ -230,6 +230,36 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
 })
 
 setLang("th")
+  // insert data
+await sb.from('registrations').insert({
+  prefix: prefix.value,
+  first_name: first_name.value,
+  last_name: last_name.value,
+  citizen_id: cid,
+  address: address.value,
+  blood_group: blood_group.value,
+  email: email.value,
+  slip_url,
+  status: "pending"
+})
+
+// 🔔 แจ้ง LINE (ไม่บล็อก flow)
+fetch(
+  "https://YOUR_PROJECT_REF.supabase.co/functions/v1/send-line",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer PUBLIC_ANON_KEY"
+    },
+    body: JSON.stringify({
+      name: `${first_name.value} ${last_name.value}`,
+      citizen_id: cid,
+      blood_group: blood_group.value
+    })
+  }
+)
+
 </script>
 
 </body>
