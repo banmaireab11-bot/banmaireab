@@ -62,7 +62,8 @@
 <script>
 const SUPABASE_URL = "https://etnvagsxrrglysavibfe.supabase.co"
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io"
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+// 👉 ใช้ sb แทน
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const loading = document.getElementById('loading')
 const showLoading = (v=true)=>loading.classList.toggle('hidden', !v)
@@ -71,13 +72,13 @@ document.getElementById('regForm').addEventListener('submit', async e=>{
   e.preventDefault()
   showLoading(true)
 
-  const citizen_id = citizen_id.value
+  const cid = citizen_id.value
 
-  // ป้องกันสมัครซ้ำ
-  const { data: dup } = await supabase
+  // เช็กซ้ำ
+  const { data: dup } = await sb
     .from('registrations')
     .select('id')
-    .eq('citizen_id', citizen_id)
+    .eq('citizen_id', cid)
 
   if(dup.length){
     showLoading(false)
@@ -87,35 +88,34 @@ document.getElementById('regForm').addEventListener('submit', async e=>{
 
   // upload slip
   const file = slip.files[0]
-  const filePath = `${citizen_id}_${Date.now()}.jpg`
+  const filePath = `${cid}_${Date.now()}.jpg`
 
-  const { error: uploadErr } = await supabase
+  const { error } = await sb
     .storage.from('payment-slips')
     .upload(filePath, file)
 
-  if(uploadErr){
+  if(error){
     showLoading(false)
     Swal.fire('ผิดพลาด','อัปโหลดสลิปล้มเหลว','error')
     return
   }
 
-  const slip_url = supabase
+  const slip_url = sb
     .storage.from('payment-slips')
     .getPublicUrl(filePath).data.publicUrl
 
   // insert
-  await supabase.from('registrations').insert({
+  await sb.from('registrations').insert({
     prefix: prefix.value,
     first_name: first_name.value,
     last_name: last_name.value,
-    citizen_id,
+    citizen_id: cid,
     address: address.value,
     blood_group: blood_group.value,
     email: email.value,
     slip_url
   })
 
-  // แจ้ง Telegram
   fetch("SUPABASE_FUNCTION_TELEGRAM_URL",{ method:"POST" })
 
   showLoading(false)
