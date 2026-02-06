@@ -34,8 +34,12 @@
 
 <!-- Header -->
 <div class="bg-sky-600 text-white p-6 relative">
-  <h1 id="title" class="text-2xl font-bold text-center">สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ</h1>
-  <p id="subtitle" class="text-center text-sm mt-1">ระบบรับสมัครอย่างเป็นทางการ</p>
+  <h1 id="title" class="text-2xl font-bold text-center">
+    สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ
+  </h1>
+  <p id="subtitle" class="text-center text-sm mt-1">
+    ระบบรับสมัครอย่างเป็นทางการ
+  </p>
   <div class="absolute top-4 right-4 flex gap-2 text-sm">
     <button onclick="setLang('th')" class="px-2 py-1 bg-white/20 rounded">TH</button>
     <button onclick="setLang('en')" class="px-2 py-1 bg-white/20 rounded">EN</button>
@@ -53,8 +57,10 @@
 </select>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-  <input id="first_name" class="border rounded px-3 py-2" data-i18n-placeholder="fname" required>
-  <input id="last_name" class="border rounded px-3 py-2" data-i18n-placeholder="lname" required>
+  <input id="first_name" class="border rounded px-3 py-2"
+    data-i18n-placeholder="fname" required>
+  <input id="last_name" class="border rounded px-3 py-2"
+    data-i18n-placeholder="lname" required>
 </div>
 
 <input id="phone" class="w-full border rounded px-3 py-2"
@@ -76,15 +82,19 @@
   <option>A</option><option>B</option><option>AB</option><option>O</option>
 </select>
 
-<input id="email" type="email" class="w-full border rounded px-3 py-2"
+<input id="email" type="email"
+  class="w-full border rounded px-3 py-2"
   data-i18n-placeholder="email" required>
 
 <div>
-  <label id="slipLabel" class="block text-sm mb-1">แนบสลิปการโอนเงิน</label>
+  <label id="slipLabel" class="block text-sm mb-1">
+    แนบสลิปการโอนเงิน
+  </label>
   <input id="slip" type="file" accept="image/*" required>
 </div>
 
-<button id="submitBtn" class="w-full bg-sky-600 text-white py-2 rounded">
+<button id="submitBtn"
+  class="w-full bg-sky-600 text-white py-2 rounded hover:bg-sky-700">
   สมัครเข้าร่วม
 </button>
 
@@ -98,6 +108,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 /* ================= VALIDATION ================= */
+// 🇹🇭 Thai Citizen ID (Checksum)
 function isValidThaiCitizenID(id){
   if(!/^\d{13}$/.test(id)) return false
   let sum = 0
@@ -108,6 +119,7 @@ function isValidThaiCitizenID(id){
   return check === parseInt(id[12])
 }
 
+// 🇹🇭 + 🌍 Citizen ID or Passport
 function isValidCitizenOrPassport(v){
   if(isValidThaiCitizenID(v)) return true
   if(/^[A-Za-z0-9]{6,20}$/.test(v)) return true
@@ -125,7 +137,7 @@ const i18n = {
     cid:"เลขบัตรประชาชน / Passport",
     address:"ที่อยู่",blood:"กรุ๊ปเลือด",email:"อีเมล",slip:"แนบสลิป",
     submit:"สมัครเข้าร่วม",
-    cidErr:"กรุณากรอกเลขบัตรประชาชน หรือ Passport ที่ถูกต้อง",
+    cidErr:"กรุณากรอกเลขบัตรประชาชนที่ถูกต้อง หรือ Passport ที่ถูกต้อง",
     phoneErr:"เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก",
     successTitle:"ลงทะเบียนสำเร็จ",
     successMsg:"ระบบได้รับข้อมูลการสมัครของท่านเรียบร้อยแล้ว\nกรุณารอการตรวจสอบและอนุมัติจากเจ้าหน้าที่\nจะแจ้งผลผ่านอีเมลอีกครั้ง"
@@ -145,8 +157,12 @@ const i18n = {
 let currentLang="th"
 function setLang(l){
   currentLang=l
-  document.querySelectorAll("[data-i18n]").forEach(e=>e.innerText=i18n[l][e.dataset.i18n])
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(e=>e.placeholder=i18n[l][e.dataset.i18nPlaceholder])
+  document.querySelectorAll("[data-i18n]").forEach(e=>{
+    e.innerText=i18n[l][e.dataset.i18n]
+  })
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(e=>{
+    e.placeholder=i18n[l][e.dataset.i18nPlaceholder]
+  })
   submitBtn.innerText=i18n[l].submit
   slipLabel.innerText=i18n[l].slip
 }
@@ -174,7 +190,11 @@ registerForm.addEventListener("submit",async e=>{
     return
   }
 
-  const {data:dup}=await sb.from("registrations").select("id").eq("citizen_id",cid)
+  const {data:dup}=await sb
+    .from("registrations")
+    .select("id")
+    .eq("citizen_id",cid)
+
   if(dup.length){
     showLoading(false)
     Swal.fire("Warning","ข้อมูลนี้สมัครแล้ว","warning")
@@ -199,7 +219,7 @@ registerForm.addEventListener("submit",async e=>{
   })
 
   showLoading(false)
-  Swal.fire("Success",i18n[currentLang].successMsg,"success")
+  Swal.fire(i18n[currentLang].successTitle,i18n[currentLang].successMsg,"success")
   e.target.reset()
 })
 
