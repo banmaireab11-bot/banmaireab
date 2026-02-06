@@ -82,9 +82,11 @@
       required>
 
     <input id="citizen_id" class="w-full border rounded px-3 py-2"
-      maxlength="13"
+      maxlength="20"
       data-i18n-placeholder="cid"
-      placeholder="เลขบัตรประชาชน 13 หลัก" required>
+      placeholder="เลขบัตรประชาชน 13 หลัก / Passport"
+      required>
+
 
     <textarea id="address" class="w-full border rounded px-3 py-2"
       data-i18n-placeholder="address"
@@ -134,7 +136,8 @@ const i18n = {
     fname: "ชื่อ",
     lname: "นามสกุล",
     phone: "เบอร์โทรศัพท์",
-    cid: "เลขบัตรประชาชน 13 หลัก",
+    cid: "เลขบัตรประชาชน 13 หลัก / Passport",
+    cidErr: "กรุณากรอกเลขบัตรประชาชน 13 หลัก หรือ Passport ที่ถูกต้อง",
     address: "ที่อยู่",
     blood: "กรุ๊ปเลือด",
     email: "อีเมล",
@@ -155,7 +158,8 @@ const i18n = {
     fname: "First Name",
     lname: "Last Name",
     phone: "Phone Number",
-    cid: "Citizen ID (13 digits)",
+    cid: "Citizen ID (13 digits) / Passport",
+    cidErr: "Please enter a valid Citizen ID (13 digits) or Passport number",
     address: "Address",
     blood: "Blood Group",
     email: "Email",
@@ -206,11 +210,15 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
   const cid = citizen_id.value.trim()
   const phoneVal = phone.value.trim()
 
-  if(!isValidCid(cid)){
-    showLoading(false)
-    Swal.fire("Error", i18n[currentLang].cidErr, "error")
-    return
-  }
+ const isValidCid = value => {
+  // เลขบัตรประชาชน (ตัวเลข 13 หลัก)
+  if (/^\d{13}$/.test(value)) return true
+
+  // Passport (ตัวอักษร + ตัวเลข 6–20 ตัว)
+  if (/^[A-Za-z0-9]{6,20}$/.test(value)) return true
+
+  return false
+}
 
   if(!isValidPhone(phoneVal)){
     showLoading(false)
