@@ -80,10 +80,13 @@ const SUPABASE_URL = "https://etnvagsxrrglysavibfe.supabase.co"
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io"
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// EmailJS config
-const EMAIL_SERVICE_ID = "service_w51dn0v"
+// ===== EmailJS =====
+emailjs.init("xyPTiaVqlFqMrd_3U")  // ❗ ใส่ Public Key จริง
+
+const EMAIL_SERVICE_ID  = "service_w51dn0v"
 const EMAIL_TEMPLATE_ID = "template_fkwen1e"
 
+/* ================= STATE ================= */
 let allData = []
 const cardList = document.getElementById("cardList")
 
@@ -205,12 +208,18 @@ async function approve(id){
     return
   }
 
-  // update status
-  await sb.from("registrations")
+  // 1) update status
+  const { error } = await sb
+    .from("registrations")
     .update({ status: "approved" })
     .eq("id", id)
 
-  // 📧 send email via EmailJS
+  if(error){
+    Swal.fire("Error", "อัปเดตสถานะไม่สำเร็จ", "error")
+    return
+  }
+
+  // 2) send email
   emailjs.send(
     EMAIL_SERVICE_ID,
     EMAIL_TEMPLATE_ID,
@@ -219,9 +228,20 @@ async function approve(id){
       cid: user.citizen_id,
       email: user.email
     }
-  )
-
-  Swal.fire("สำเร็จ", "อนุมัติและส่งอีเมลแจ้งเรียบร้อยแล้ว", "success")
+  ).then(() => {
+    Swal.fire(
+      "สำเร็จ",
+      "อนุมัติเรียบร้อย และส่งอีเมลแจ้งผู้สมัครแล้ว",
+      "success"
+    )
+  }).catch(err => {
+    console.error("EMAILJS ERROR:", err)
+    Swal.fire(
+      "อนุมัติแล้ว",
+      "แต่ไม่สามารถส่งอีเมลได้ กรุณาตรวจสอบ EmailJS",
+      "warning"
+    )
+  })
 }
 
 /* ================= VIEW IMAGE ================= */
@@ -245,6 +265,7 @@ sb.channel("registrations-realtime")
 /* ================= INIT ================= */
 loadData()
 </script>
+
 
 </body>
 </html>
