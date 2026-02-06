@@ -8,6 +8,12 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+  emailjs.init("YOUR_EMAILJS_PUBLIC_KEY")
+</script>
+
 <style>
   body {
     background: linear-gradient(to bottom right, #f0f9ff, #ffffff);
@@ -74,8 +80,12 @@ const SUPABASE_URL = "https://etnvagsxrrglysavibfe.supabase.co"
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io"
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-const cardList = document.getElementById("cardList")
+// EmailJS config
+const EMAIL_SERVICE_ID = "service_w51dn0v"
+const EMAIL_TEMPLATE_ID = "template_fkwen1e"
+
 let allData = []
+const cardList = document.getElementById("cardList")
 
 /* ================= LOAD DATA ================= */
 async function loadData(){
@@ -108,8 +118,8 @@ function renderDashboard(data){
 /* ================= FILTER ================= */
 function applyFilter(){
   const status = document.getElementById("statusFilter").value
-
   let filtered = allData
+
   if(status !== "all"){
     filtered = allData.filter(d => d.status === status)
   }
@@ -144,7 +154,6 @@ function renderCards(data){
 
     cardList.innerHTML += `
       <div class="bg-white rounded-xl shadow p-4">
-        
         <div class="flex justify-between items-center mb-2">
           <span class="text-sm px-2 py-1 rounded ${statusColor}">
             ${d.status === "approved" ? "Approved" : "Pending"}
@@ -177,7 +186,7 @@ function renderCards(data){
   })
 }
 
-/* ================= ACTION ================= */
+/* ================= APPROVE ================= */
 async function approve(id){
   const confirm = await Swal.fire({
     title: "ยืนยันการอนุมัติ",
@@ -190,11 +199,29 @@ async function approve(id){
 
   if(!confirm.isConfirmed) return
 
+  const user = allData.find(u => u.id === id)
+  if(!user){
+    Swal.fire("Error", "ไม่พบข้อมูลผู้สมัคร", "error")
+    return
+  }
+
+  // update status
   await sb.from("registrations")
     .update({ status: "approved" })
     .eq("id", id)
 
-  Swal.fire("สำเร็จ", "อนุมัติเรียบร้อยแล้ว", "success")
+  // 📧 send email via EmailJS
+  emailjs.send(
+    EMAIL_SERVICE_ID,
+    EMAIL_TEMPLATE_ID,
+    {
+      fullname: `${user.prefix}${user.first_name} ${user.last_name}`,
+      cid: user.citizen_id,
+      email: user.email
+    }
+  )
+
+  Swal.fire("สำเร็จ", "อนุมัติและส่งอีเมลแจ้งเรียบร้อยแล้ว", "success")
 }
 
 /* ================= VIEW IMAGE ================= */
@@ -211,9 +238,7 @@ sb.channel("registrations-realtime")
   .on(
     "postgres_changes",
     { event: "*", schema: "public", table: "registrations" },
-    payload => {
-      loadData()
-    }
+    () => loadData()
   )
   .subscribe()
 
