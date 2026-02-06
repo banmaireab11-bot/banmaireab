@@ -125,20 +125,26 @@ function isValidThaiCitizenID(id){
   return check === parseInt(id[12],10)
 }
 
-function isValidCitizenOrPassport(value){
-  // ตัวเลขล้วน
+function isValidCitizenOrPassport(value) {
+  value = value.trim()
+
+  // 🔴 ตัวเลขล้วน
   if (/^\d+$/.test(value)) {
+    // ต้องเป็นเลขบัตรประชาชนไทย 13 หลัก และผ่าน checksum เท่านั้น
     if (value.length === 13) {
       return isValidThaiCitizenID(value)
     }
     return false
   }
-  // Passport ต้องมีตัวอักษรอย่างน้อย 1 ตัว
-  if (/^(?=.*[A-Za-z])[A-Za-z0-9]{6,20}$/.test(value)) {
+
+  // 🌍 Passport (ต้องมี "ตัวอักษร + ตัวเลข" อย่างน้อยอย่างละ 1)
+  if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,20}$/.test(value)) {
     return true
   }
+
   return false
 }
+
 
 function isValidPhone(p){
   return /^\d{10}$/.test(p)
