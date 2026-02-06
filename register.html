@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Register – สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<!-- Loading -->
+<div id="loading" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+  <div class="bg-white px-6 py-4 rounded shadow text-lg">
+    กำลังบันทึกข้อมูล...
+  </div>
+</div>
+
+<div class="max-w-xl mx-auto mt-10 bg-white p-6 rounded shadow">
+  <h1 class="text-2xl font-bold mb-4 text-center">
+    Register สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ
+  </h1>
+
+  <form id="regForm" class="space-y-3">
+
+    <select id="prefix" class="w-full border p-2 rounded" required>
+      <option value="">คำนำหน้า</option>
+      <option>นาย</option>
+      <option>นาง</option>
+      <option>นางสาว</option>
+    </select>
+
+    <input id="first_name" class="w-full border p-2 rounded" placeholder="ชื่อ" required>
+    <input id="last_name" class="w-full border p-2 rounded" placeholder="นามสกุล" required>
+
+    <input id="citizen_id" class="w-full border p-2 rounded"
+      placeholder="เลขบัตรประชาชน 13 หลัก" maxlength="13" required>
+
+    <textarea id="address" class="w-full border p-2 rounded" placeholder="ที่อยู่" required></textarea>
+
+    <select id="blood_group" class="w-full border p-2 rounded" required>
+      <option value="">กรุ๊ปเลือด</option>
+      <option>A</option>
+      <option>B</option>
+      <option>AB</option>
+      <option>O</option>
+    </select>
+
+    <input id="email" type="email" class="w-full border p-2 rounded" placeholder="Email" required>
+
+    <input id="slip" type="file" accept="image/*" class="w-full" required>
+
+    <button class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+      Register สมัครเข้าร่วม
+    </button>
+
+  </form>
+</div>
+
+<script>
+const SUPABASE_URL = "https://etnvagsxrrglysavibfe.supabase.co"
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io"
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+const loading = document.getElementById('loading')
+const showLoading = (v=true)=>loading.classList.toggle('hidden', !v)
+
+document.getElementById('regForm').addEventListener('submit', async e=>{
+  e.preventDefault()
+  showLoading(true)
+
+  const citizen_id = citizen_id.value
+
+  // ป้องกันสมัครซ้ำ
+  const { data: dup } = await supabase
+    .from('registrations')
+    .select('id')
+    .eq('citizen_id', citizen_id)
+
+  if(dup.length){
+    showLoading(false)
+    Swal.fire('ผิดพลาด','เลขบัตรนี้สมัครแล้ว','error')
+    return
+  }
+
+  // upload slip
+  const file = slip.files[0]
+  const filePath = `${citizen_id}_${Date.now()}.jpg`
+
+  const { error: uploadErr } = await supabase
+    .storage.from('payment-slips')
+    .upload(filePath, file)
+
+  if(uploadErr){
+    showLoading(false)
+    Swal.fire('ผิดพลาด','อัปโหลดสลิปล้มเหลว','error')
+    return
+  }
+
+  const slip_url = supabase
+    .storage.from('payment-slips')
+    .getPublicUrl(filePath).data.publicUrl
+
+  // insert
+  await supabase.from('registrations').insert({
+    prefix: prefix.value,
+    first_name: first_name.value,
+    last_name: last_name.value,
+    citizen_id,
+    address: address.value,
+    blood_group: blood_group.value,
+    email: email.value,
+    slip_url
+  })
+
+  // แจ้ง Telegram
+  fetch("SUPABASE_FUNCTION_TELEGRAM_URL",{ method:"POST" })
+
+  showLoading(false)
+  Swal.fire('สำเร็จ','สมัครเรียบร้อย','success')
+  e.target.reset()
+})
+</script>
+
+</body>
+</html>
