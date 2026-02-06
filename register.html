@@ -114,7 +114,7 @@
 <script>
 /* ================= CONFIG ================= */
 const SUPABASE_URL = "https://etnvagsxrrglysavibfe.supabase.co"
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io"
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io" // แนะนำย้ายไป .env ถ้าได้
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 /* ================= I18N ================= */
@@ -159,6 +159,7 @@ const i18n = {
 
 let currentLang = "th"
 
+/* ================= LANGUAGE ================= */
 function setLang(lang){
   currentLang = lang
   document.documentElement.lang = lang
@@ -188,12 +189,14 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
   showLoading(true)
 
   const cid = citizen_id.value.trim()
+
   if(!isValidCid(cid)){
     showLoading(false)
     Swal.fire("Error", i18n[currentLang].cidErr, "error")
     return
   }
 
+  // เช็กซ้ำ
   const { data: dup } = await sb
     .from('registrations')
     .select('id')
@@ -205,6 +208,7 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
     return
   }
 
+  // upload slip
   const filePath = `${cid}_${Date.now()}.jpg`
   await sb.storage.from('payment-slips').upload(filePath, slip.files[0])
 
@@ -212,6 +216,7 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
     .from('payment-slips')
     .getPublicUrl(filePath).data.publicUrl
 
+  // insert
   await sb.from('registrations').insert({
     prefix: prefix.value,
     first_name: first_name.value,
@@ -224,43 +229,28 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
     status: "pending"
   })
 
-  showLoading(false)
-  Swal.fire("Success", i18n[currentLang].success, "success")
-  e.target.reset()
-})
-
-setLang("th")
-  // insert data
-await sb.from('registrations').insert({
-  prefix: prefix.value,
-  first_name: first_name.value,
-  last_name: last_name.value,
-  citizen_id: cid,
-  address: address.value,
-  blood_group: blood_group.value,
-  email: email.value,
-  slip_url,
-  status: "pending"
-})
-
-// 🔔 แจ้ง LINE (ไม่บล็อก flow)
-fetch(
-  "https://YOUR_PROJECT_REF.supabase.co/functions/v1/send-line",
-  {
+  // 🔔 แจ้ง LINE (ไม่ await เพื่อไม่บล็อก)
+  fetch("https://etnvagsxrrglysavibfe.supabase.co/functions/v1/send-line", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": "Bearer PUBLIC_ANON_KEY"
+      "Authorization": `Bearer ${SUPABASE_KEY}`
     },
     body: JSON.stringify({
       name: `${first_name.value} ${last_name.value}`,
       citizen_id: cid,
       blood_group: blood_group.value
     })
-  }
-)
+  })
 
+  showLoading(false)
+  Swal.fire("Success", i18n[currentLang].success, "success")
+  e.target.reset()
+})
+
+setLang("th")
 </script>
+
 
 </body>
 </html>
