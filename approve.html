@@ -8,10 +8,10 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- EmailJS -->
+<!-- EmailJS (ใช้เฉพาะ approve) -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>
-  emailjs.init("YOUR_EMAILJS_PUBLIC_KEY")
+  emailjs.init("xyPTiaVqlFqMrd_3U") <!-- 🔴 ใส่ Public Key ของจริง -->
 </script>
 
 <style>
@@ -34,10 +34,10 @@
 </div>
 
 <!-- ================= Dashboard ================= -->
-<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
 
   <div class="bg-white rounded-xl shadow p-5 border-l-4 border-sky-600">
-    <p class="text-gray-500">ผู้สมัครทั้งหมด</p>
+    <p class="text-gray-500">ทั้งหมด</p>
     <p id="totalCount" class="text-3xl font-bold text-sky-700">0</p>
   </div>
 
@@ -51,27 +51,29 @@
     <p id="pendingCount" class="text-3xl font-bold text-orange-500">0</p>
   </div>
 
+  <div class="bg-white rounded-xl shadow p-5 border-l-4 border-red-600">
+    <p class="text-gray-500">ยกเลิก</p>
+    <p id="rejectedCount" class="text-3xl font-bold text-red-600">0</p>
+  </div>
+
 </div>
 
 <!-- ================= Filter ================= -->
 <div class="max-w-7xl mx-auto mb-6 flex items-center gap-3">
-  <label class="text-gray-700 font-medium">
-    กรองตามสถานะ:
-  </label>
+  <label class="font-medium">กรองตามสถานะ:</label>
   <select id="statusFilter"
     class="border rounded px-3 py-2"
     onchange="applyFilter()">
     <option value="all">ทั้งหมด</option>
     <option value="pending">รออนุมัติ</option>
     <option value="approved">อนุมัติแล้ว</option>
+    <option value="rejected">ยกเลิกแล้ว</option>
   </select>
 </div>
 
 <!-- ================= Cards ================= -->
 <div class="max-w-7xl mx-auto">
-  <div id="cardList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-    <!-- cards -->
-  </div>
+  <div id="cardList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
 </div>
 
 <script>
@@ -80,9 +82,7 @@ const SUPABASE_URL = "https://etnvagsxrrglysavibfe.supabase.co"
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io"
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// ===== EmailJS =====
-emailjs.init("xyPTiaVqlFqMrd_3U")  // ❗ ใส่ Public Key จริง
-
+// EmailJS (ใช้ตอน approve)
 const EMAIL_SERVICE_ID  = "service_w51dn0v"
 const EMAIL_TEMPLATE_ID = "template_fkwen1e"
 
@@ -109,24 +109,19 @@ async function loadData(){
 
 /* ================= DASHBOARD ================= */
 function renderDashboard(data){
-  const total = data.length
-  const approved = data.filter(d => d.status === "approved").length
-  const pending = data.filter(d => d.status !== "approved").length
-
-  document.getElementById("totalCount").innerText = total
-  document.getElementById("approvedCount").innerText = approved
-  document.getElementById("pendingCount").innerText = pending
+  document.getElementById("totalCount").innerText    = data.length
+  document.getElementById("approvedCount").innerText = data.filter(d=>d.status==="approved").length
+  document.getElementById("pendingCount").innerText  = data.filter(d=>d.status==="pending").length
+  document.getElementById("rejectedCount").innerText = data.filter(d=>d.status==="rejected").length
 }
 
 /* ================= FILTER ================= */
 function applyFilter(){
   const status = document.getElementById("statusFilter").value
   let filtered = allData
-
   if(status !== "all"){
     filtered = allData.filter(d => d.status === status)
   }
-
   renderCards(filtered)
 }
 
@@ -134,56 +129,41 @@ function applyFilter(){
 function renderCards(data){
   cardList.innerHTML = ""
 
-  if(data.length === 0){
-    cardList.innerHTML = `
-      <div class="col-span-full text-center text-gray-500">
-        ไม่พบข้อมูลผู้สมัคร
-      </div>
-    `
+  if(!data.length){
+    cardList.innerHTML = `<div class="col-span-full text-center text-gray-500">ไม่พบข้อมูล</div>`
     return
   }
 
-  data.forEach(d => {
-    const statusColor = d.status === "approved"
-      ? "bg-green-100 text-green-700"
-      : "bg-orange-100 text-orange-700"
+  data.forEach(d=>{
+    let actionHtml = ""
 
-    const btn = d.status === "approved"
-      ? `<span class="text-green-600 font-semibold">✔ อนุมัติแล้ว</span>`
-      : `<button onclick="approve('${d.id}')"
-           class="w-full mt-3 bg-green-600 text-white py-2 rounded hover:bg-green-700">
-           อนุมัติ
-         </button>`
+    if(d.status === "approved"){
+      actionHtml = `<span class="text-green-600 font-semibold">✔ อนุมัติแล้ว</span>`
+    }
+    else if(d.status === "rejected"){
+      actionHtml = `
+        <span class="text-red-600 font-semibold">✖ ยกเลิกแล้ว</span>
+        <p class="text-sm text-red-500 mt-1">เหตุผล: ${d.reject_reason || "-"}</p>
+      `
+    }
+    else{
+      actionHtml = `
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <button onclick="approve('${d.id}')"
+            class="bg-green-600 text-white py-2 rounded hover:bg-green-700">อนุมัติ</button>
+          <button onclick="reject('${d.id}')"
+            class="bg-red-600 text-white py-2 rounded hover:bg-red-700">ยกเลิก</button>
+        </div>
+      `
+    }
 
     cardList.innerHTML += `
       <div class="bg-white rounded-xl shadow p-4">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm px-2 py-1 rounded ${statusColor}">
-            ${d.status === "approved" ? "Approved" : "Pending"}
-          </span>
-        </div>
-
-        <h3 class="font-bold text-lg text-gray-800">
-          ${d.prefix}${d.first_name} ${d.last_name}
-        </h3>
-
-        <p class="text-sm text-gray-600 mt-1">
-          เลขบัตร / Passport:
-          <span class="font-medium">${d.citizen_id}</span>
-        </p>
-
-        <p class="text-sm text-gray-600">
-          โทรศัพท์:
-          <span class="font-medium">${d.phone}</span>
-        </p>
-
-        <div class="mt-3">
-          <img src="${d.slip_url}"
-               onclick="viewImage('${d.slip_url}')"
-               class="w-full h-48 object-cover rounded cursor-pointer border">
-        </div>
-
-        ${btn}
+        <h3 class="font-bold text-lg">${d.prefix}${d.first_name} ${d.last_name}</h3>
+        <p class="text-sm">เลขบัตร / Passport: <b>${d.citizen_id}</b></p>
+        <p class="text-sm">โทรศัพท์: <b>${d.phone}</b></p>
+        <img src="${d.slip_url}" class="w-full h-48 object-cover rounded mt-2">
+        ${actionHtml}
       </div>
     `
   })
@@ -191,90 +171,57 @@ function renderCards(data){
 
 /* ================= APPROVE ================= */
 async function approve(id){
-  const confirm = await Swal.fire({
-    title: "ยืนยันการอนุมัติ",
-    text: "ต้องการอนุมัติผู้สมัครรายนี้หรือไม่",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "อนุมัติ",
-    cancelButtonText: "ยกเลิก"
-  })
+  const idx = allData.findIndex(u=>u.id===id)
+  if(idx===-1) return
 
-  if(!confirm.isConfirmed) return
-
-  const userIndex = allData.findIndex(u => u.id === id)
-  if(userIndex === -1){
-    Swal.fire("Error", "ไม่พบข้อมูลผู้สมัคร", "error")
-    return
-  }
-
-  const user = allData[userIndex]
-
-  /* 1) update status ใน DB */
-  const { error } = await sb
-    .from("registrations")
-    .update({ status: "approved" })
-    .eq("id", id)
-
-  if(error){
-    Swal.fire("Error", "อัปเดตสถานะไม่สำเร็จ", "error")
-    return
-  }
-
-  /* ✅ 2) update state ฝั่งหน้าเว็บทันที */
-  allData[userIndex].status = "approved"
-
+  await sb.from("registrations").update({status:"approved"}).eq("id",id)
+  allData[idx].status = "approved"
   renderDashboard(allData)
   applyFilter()
 
-  /* 3) ส่ง Email (ไม่บล็อก UI) */
-  emailjs.send(
-    EMAIL_SERVICE_ID,
-    EMAIL_TEMPLATE_ID,
-    {
-      fullname: `${user.prefix}${user.first_name} ${user.last_name}`,
-      cid: user.citizen_id,
-      email: user.email
-    }
-  ).then(() => {
-    Swal.fire(
-      "สำเร็จ",
-      "อนุมัติเรียบร้อย และส่งอีเมลแจ้งผู้สมัครแล้ว",
-      "success"
-    )
-  }).catch(err => {
-    console.error("EMAILJS ERROR:", err)
-    Swal.fire(
-      "อนุมัติแล้ว",
-      "แต่ไม่สามารถส่งอีเมลได้ กรุณาตรวจสอบ EmailJS",
-      "warning"
-    )
+  // ส่งอีเมลเฉพาะ approve
+  emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+    fullname: `${allData[idx].prefix}${allData[idx].first_name} ${allData[idx].last_name}`,
+    cid: allData[idx].citizen_id,
+    email: allData[idx].email
   })
+
+  Swal.fire("สำเร็จ","อนุมัติเรียบร้อย","success")
 }
 
-
-/* ================= VIEW IMAGE ================= */
-function viewImage(url){
-  Swal.fire({
-    imageUrl: url,
-    imageAlt: "Slip",
-    showConfirmButton: false
+/* ================= REJECT ================= */
+async function reject(id){
+  const { value: reason } = await Swal.fire({
+    title: "ยกเลิกการสมัคร",
+    input: "textarea",
+    inputLabel: "กรุณาระบุเหตุผล",
+    showCancelButton: true,
+    inputValidator: v => !v && "กรุณากรอกเหตุผล"
   })
+  if(!reason) return
+
+  const idx = allData.findIndex(u=>u.id===id)
+  if(idx===-1) return
+
+  await sb.from("registrations")
+    .update({ status:"rejected", reject_reason: reason })
+    .eq("id",id)
+
+  allData[idx].status = "rejected"
+  allData[idx].reject_reason = reason
+  renderDashboard(allData)
+  applyFilter()
+
+  Swal.fire("สำเร็จ","ยกเลิกการสมัครเรียบร้อย","success")
 }
 
 /* ================= REALTIME ================= */
 sb.channel("registrations-realtime")
-  .on(
-    "postgres_changes",
-    { event: "*", schema: "public", table: "registrations" },
-    () => loadData()
-  )
+  .on("postgres_changes",{event:"*",schema:"public",table:"registrations"},loadData)
   .subscribe()
 
-/* ================= INIT ================= */
 loadData()
 </script>
-
 
 </body>
 </html>
