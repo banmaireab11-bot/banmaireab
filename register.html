@@ -59,10 +59,13 @@
   placeholder="เบอร์โทรศัพท์ 10 หลัก"
   required>
 
-<input id="citizen_id" class="w-full border rounded px-3 py-2"
-  maxlength="20"
-  placeholder="เลขบัตรประชาชน / Passport"
-  required>
+<div>
+  <input id="citizen_id" class="w-full border rounded px-3 py-2"
+    maxlength="20"
+    placeholder="เลขบัตรประชาชน / Passport"
+    required>
+  <p id="idFeedback" class="text-sm mt-1"></p>
+</div>
 
 <textarea id="address" class="w-full border rounded px-3 py-2"
   placeholder="ที่อยู่" required></textarea>
@@ -81,7 +84,10 @@
   <input id="slip" type="file" accept="image/*" required>
 </div>
 
-<button class="w-full bg-sky-600 text-white py-2 rounded hover:bg-sky-700">
+<button
+  id="submitBtn"
+  disabled
+  class="w-full bg-gray-400 text-white py-2 rounded cursor-not-allowed transition">
   สมัครเข้าร่วม
 </button>
 
@@ -96,69 +102,109 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 /* ================= VALIDATION ================= */
 
-// ตรวจเลขเรียง เช่น 123456 / 987654
+// เลขเรียง
 function isSequentialNumber(str) {
-  const asc = "0123456789"
-  const desc = "9876543210"
-  return asc.includes(str) || desc.includes(str)
+  return "0123456789".includes(str) || "9876543210".includes(str)
 }
 
-// 🇹🇭 ตรวจเลขบัตรประชาชนไทย (เข้ม)
+// บัตรประชาชนไทย (เข้ม)
 function isValidThaiCitizenID(id) {
   if (!/^\d{13}$/.test(id)) return false
   if (/^(\d)\1{12}$/.test(id)) return false
 
-  const firstDigit = parseInt(id[0], 10)
-  if (firstDigit < 1 || firstDigit > 8) return false
+  const first = parseInt(id[0], 10)
+  if (first < 1 || first > 8) return false
 
   let sum = 0
   for (let i = 0; i < 12; i++) {
     sum += parseInt(id[i], 10) * (13 - i)
   }
-  const checkDigit = (11 - (sum % 11)) % 10
-  return checkDigit === parseInt(id[12], 10)
+  const check = (11 - (sum % 11)) % 10
+  return check === parseInt(id[12], 10)
 }
 
-/**
- * 🆔 ช่องเดียว: บัตรประชาชน + Passport
- * - 13 หลักตัวเลข → บัตรประชาชนไทย (checksum)
- * - ตัวเลขล้วน 6–9 หลัก → Passport บางประเทศ
- * - ผสมตัวอักษร → Passport
- */
-function isValidCitizenOrPassport(value) {
-  value = value.trim()
+// รวม บัตรประชาชน + Passport
+function isValidCitizenOrPassport(v) {
+  v = v.trim()
 
-  // 🔢 ตัวเลขล้วน
-  if (/^\d+$/.test(value)) {
-
-    // 🇹🇭 บัตรประชาชนไทย
-    if (value.length === 13) {
-      return isValidThaiCitizenID(value)
-    }
-
-    // 🌍 Passport ตัวเลขล้วน (บางประเทศ)
-    if (value.length >= 6 && value.length <= 9) {
-      if (/^(\d)\1+$/.test(value)) return false
-      if (isSequentialNumber(value)) return false
+  if (/^\d+$/.test(v)) {
+    if (v.length === 13) return isValidThaiCitizenID(v)
+    if (v.length >= 6 && v.length <= 9) {
+      if (/^(\d)\1+$/.test(v)) return false
+      if (isSequentialNumber(v)) return false
       return true
     }
-
     return false
   }
 
-  // 🌍 Passport ผสมตัวอักษร
-  if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,20}$/.test(value)) {
-    return true
-  }
-
+  if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,20}$/.test(v)) return true
   return false
+}
+
+function getIdType(v) {
+  if (/^\d+$/.test(v)) {
+    if (v.length === 13 && isValidThaiCitizenID(v)) return "thai"
+    if (v.length >= 6 && v.length <= 9) return "passport_numeric"
+  }
+  if (/^(?=.*[A-Za-z])(?=.*\d)/.test(v)) return "passport"
+  return null
 }
 
 function isValidPhone(p) {
   return /^\d{10}$/.test(p)
 }
 
-/* ================= FORM ================= */
+/* ================= BUTTON CONTROL ================= */
+const submitBtn = document.getElementById("submitBtn")
+
+function setSubmitEnabled(enabled) {
+  submitBtn.disabled = !enabled
+  if (enabled) {
+    submitBtn.classList.remove("bg-gray-400","cursor-not-allowed")
+    submitBtn.classList.add("bg-sky-600","hover:bg-sky-700")
+  } else {
+    submitBtn.classList.add("bg-gray-400","cursor-not-allowed")
+    submitBtn.classList.remove("bg-sky-600","hover:bg-sky-700")
+  }
+}
+
+/* ================= REALTIME CHECK ================= */
+const idInput = document.getElementById("citizen_id")
+const idFeedback = document.getElementById("idFeedback")
+
+idInput.addEventListener("input", () => {
+  const v = idInput.value.trim()
+
+  if (!v) {
+    idFeedback.textContent = ""
+    idInput.classList.remove("border-green-500","border-red-500")
+    setSubmitEnabled(false)
+    return
+  }
+
+  if (isValidCitizenOrPassport(v)) {
+    const t = getIdType(v)
+    let label = t === "thai"
+      ? "บัตรประชาชนไทย ✔"
+      : t === "passport_numeric"
+      ? "Passport (ตัวเลข) ✔"
+      : "Passport ✔"
+
+    idFeedback.textContent = "✓ " + label
+    idFeedback.className = "text-sm mt-1 text-green-600"
+    idInput.classList.add("border-green-500")
+    idInput.classList.remove("border-red-500")
+    setSubmitEnabled(true)
+  } else {
+    idFeedback.textContent = "✗ เลขไม่ถูกต้อง"
+    idFeedback.className = "text-sm mt-1 text-red-600"
+    idInput.classList.add("border-red-500")
+    idInput.classList.remove("border-green-500")
+    setSubmitEnabled(false)
+  }
+})
+
+/* ================= SUBMIT ================= */
 const loading = document.getElementById("loading")
 const showLoading = v => loading.classList.toggle("hidden", !v)
 
@@ -169,23 +215,9 @@ registerForm.addEventListener("submit", async e => {
   const cid = citizen_id.value.trim()
   const phoneVal = phone.value.trim()
 
-  if (!isValidCitizenOrPassport(cid)) {
+  if (!isValidCitizenOrPassport(cid) || !isValidPhone(phoneVal)) {
     showLoading(false)
-    Swal.fire(
-      "ข้อมูลไม่ถูกต้อง",
-      "กรุณากรอกเลขบัตรประชาชน หรือ Passport ที่ถูกต้อง",
-      "error"
-    )
-    return
-  }
-
-  if (!isValidPhone(phoneVal)) {
-    showLoading(false)
-    Swal.fire(
-      "ข้อมูลไม่ถูกต้อง",
-      "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก",
-      "error"
-    )
+    Swal.fire("ข้อมูลไม่ถูกต้อง","กรุณาตรวจสอบข้อมูลอีกครั้ง","error")
     return
   }
 
@@ -196,15 +228,13 @@ registerForm.addEventListener("submit", async e => {
 
   if (dup.length) {
     showLoading(false)
-    Swal.fire("แจ้งเตือน", "เลขนี้สมัครแล้ว", "warning")
+    Swal.fire("แจ้งเตือน","เลขนี้สมัครแล้ว","warning")
     return
   }
 
-  const filePath = `${cid}_${Date.now()}.jpg`
-  await sb.storage.from("payment-slips").upload(filePath, slip.files[0])
-  const slip_url = sb.storage
-    .from("payment-slips")
-    .getPublicUrl(filePath).data.publicUrl
+  const path = `${cid}_${Date.now()}.jpg`
+  await sb.storage.from("payment-slips").upload(path, slip.files[0])
+  const slip_url = sb.storage.from("payment-slips").getPublicUrl(path).data.publicUrl
 
   await sb.from("registrations").insert({
     prefix: prefix.value,
@@ -220,13 +250,11 @@ registerForm.addEventListener("submit", async e => {
   })
 
   showLoading(false)
-  Swal.fire(
-    "ลงทะเบียนสำเร็จ",
-    "ระบบได้รับข้อมูลเรียบร้อยแล้ว กรุณารอการตรวจสอบจากเจ้าหน้าที่",
-    "success"
-  )
+  Swal.fire("ลงทะเบียนสำเร็จ","กรุณารอการตรวจสอบจากเจ้าหน้าที่","success")
 
   e.target.reset()
+  idFeedback.textContent = ""
+  setSubmitEnabled(false)
 })
 </script>
 
