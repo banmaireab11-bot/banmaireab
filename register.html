@@ -95,14 +95,15 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 /* ================= VALIDATION ================= */
-/**
- * 🇹🇭 ตรวจเลขบัตรประชาชนไทย (เวอร์ชันเข้ม)
- * - 13 หลัก
- * - ไม่เป็นเลขซ้ำ
- * - หลักแรก 1–8
- * - checksum ถูกต้อง
- * - blacklist
- */
+
+// ตรวจเลขเรียง เช่น 123456 / 987654
+function isSequentialNumber(str) {
+  const asc = "0123456789"
+  const desc = "9876543210"
+  return asc.includes(str) || desc.includes(str)
+}
+
+// 🇹🇭 ตรวจเลขบัตรประชาชนไทย (เข้ม)
 function isValidThaiCitizenID(id) {
   if (!/^\d{13}$/.test(id)) return false
   if (/^(\d)\1{12}$/.test(id)) return false
@@ -115,31 +116,37 @@ function isValidThaiCitizenID(id) {
     sum += parseInt(id[i], 10) * (13 - i)
   }
   const checkDigit = (11 - (sum % 11)) % 10
-  if (checkDigit !== parseInt(id[12], 10)) return false
-
-  const blacklist = [
-    "1234567890123",
-    "0000000000000"
-  ]
-  if (blacklist.includes(id)) return false
-
-  return true
+  return checkDigit === parseInt(id[12], 10)
 }
 
 /**
  * 🆔 ช่องเดียว: บัตรประชาชน + Passport
- * - ตัวเลขล้วน → บัตรประชาชนเท่านั้น
- * - Passport ต้องมีตัวอักษร + ตัวเลข
+ * - 13 หลักตัวเลข → บัตรประชาชนไทย (checksum)
+ * - ตัวเลขล้วน 6–9 หลัก → Passport บางประเทศ
+ * - ผสมตัวอักษร → Passport
  */
 function isValidCitizenOrPassport(value) {
   value = value.trim()
 
-  // ตัวเลขล้วน
+  // 🔢 ตัวเลขล้วน
   if (/^\d+$/.test(value)) {
-    return isValidThaiCitizenID(value)
+
+    // 🇹🇭 บัตรประชาชนไทย
+    if (value.length === 13) {
+      return isValidThaiCitizenID(value)
+    }
+
+    // 🌍 Passport ตัวเลขล้วน (บางประเทศ)
+    if (value.length >= 6 && value.length <= 9) {
+      if (/^(\d)\1+$/.test(value)) return false
+      if (isSequentialNumber(value)) return false
+      return true
+    }
+
+    return false
   }
 
-  // Passport: ต้องมีตัวอักษร + ตัวเลข (6–20 ตัว)
+  // 🌍 Passport ผสมตัวอักษร
   if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,20}$/.test(value)) {
     return true
   }
@@ -166,7 +173,7 @@ registerForm.addEventListener("submit", async e => {
     showLoading(false)
     Swal.fire(
       "ข้อมูลไม่ถูกต้อง",
-      "กรุณากรอกเลขบัตรประชาชนที่ถูกต้อง หรือ Passport ที่ถูกต้อง",
+      "กรุณากรอกเลขบัตรประชาชน หรือ Passport ที่ถูกต้อง",
       "error"
     )
     return
