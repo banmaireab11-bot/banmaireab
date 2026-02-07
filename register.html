@@ -25,83 +25,63 @@
       <div class="w-14 h-14 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
     </div>
     <div class="text-sky-600 text-3xl mb-2">📤</div>
-    <p id="loadingTitle" class="text-lg font-semibold">
-      กำลังอัปโหลดสลิป
-    </p>
-    <p id="loadingSub" class="text-sm text-gray-500">
-      กรุณารอสักครู่ อย่าปิดหน้านี้
-    </p>
+    <p class="text-lg font-semibold">กำลังอัปโหลดสลิป</p>
+    <p class="text-sm text-gray-500">กรุณารอสักครู่ อย่าปิดหน้านี้</p>
   </div>
 </div>
 
 <div class="w-full max-w-xl bg-white rounded-xl shadow-lg overflow-hidden">
 
 <!-- Header -->
-<div class="bg-sky-600 text-white p-6 relative">
-  <h1 id="title" class="text-2xl font-bold text-center">
-    สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ
-  </h1>
-  <p id="subtitle" class="text-center text-sm mt-1">
-    ระบบรับสมัครอย่างเป็นทางการ
-  </p>
-
-  <div class="absolute top-4 right-4 flex gap-2 text-sm">
-    <button onclick="setLang('th')" class="px-2 py-1 bg-white/20 rounded">TH</button>
-    <button onclick="setLang('en')" class="px-2 py-1 bg-white/20 rounded">EN</button>
-  </div>
+<div class="bg-sky-600 text-white p-6 text-center">
+  <h1 class="text-2xl font-bold">สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ</h1>
+  <p class="text-sm mt-1">ระบบรับสมัครอย่างเป็นทางการ</p>
 </div>
 
 <!-- ================= Form ================= -->
 <form id="registerForm" class="p-6 space-y-4">
 
 <select id="prefix" class="w-full border rounded px-3 py-2" required>
-  <option value="" data-i18n="prefix">คำนำหน้า</option>
+  <option value="">คำนำหน้า</option>
   <option>นาย</option>
   <option>นาง</option>
   <option>นางสาว</option>
 </select>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-  <input id="first_name" class="border rounded px-3 py-2"
-    data-i18n-placeholder="fname" required>
-  <input id="last_name" class="border rounded px-3 py-2"
-    data-i18n-placeholder="lname" required>
+  <input id="first_name" class="border rounded px-3 py-2" placeholder="ชื่อ" required>
+  <input id="last_name" class="border rounded px-3 py-2" placeholder="นามสกุล" required>
 </div>
 
 <input id="phone" class="w-full border rounded px-3 py-2"
   maxlength="10"
   oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-  data-i18n-placeholder="phone"
+  placeholder="เบอร์โทรศัพท์ 10 หลัก"
   required>
 
 <input id="citizen_id" class="w-full border rounded px-3 py-2"
   maxlength="20"
-  data-i18n-placeholder="cid"
+  placeholder="เลขบัตรประชาชน / Passport"
   required>
 
 <textarea id="address" class="w-full border rounded px-3 py-2"
-  data-i18n-placeholder="address"
-  required></textarea>
+  placeholder="ที่อยู่" required></textarea>
 
 <select id="blood_group" class="w-full border rounded px-3 py-2" required>
-  <option value="" data-i18n="blood">กรุ๊ปเลือด</option>
+  <option value="">กรุ๊ปเลือด</option>
   <option>A</option><option>B</option><option>AB</option><option>O</option>
 </select>
 
 <input id="email" type="email"
   class="w-full border rounded px-3 py-2"
-  data-i18n-placeholder="email"
-  required>
+  placeholder="อีเมล" required>
 
 <div>
-  <label id="slipLabel" class="block text-sm mb-1">
-    แนบสลิปการโอนเงิน
-  </label>
+  <label class="block text-sm mb-1">แนบสลิปการโอนเงิน</label>
   <input id="slip" type="file" accept="image/*" required>
 </div>
 
-<button id="submitBtn"
-  class="w-full bg-sky-600 text-white py-2 rounded hover:bg-sky-700">
+<button class="w-full bg-sky-600 text-white py-2 rounded hover:bg-sky-700">
   สมัครเข้าร่วม
 </button>
 
@@ -115,29 +95,51 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 /* ================= VALIDATION ================= */
-function isValidThaiCitizenID(id){
-  if(!/^\d{13}$/.test(id)) return false
+/**
+ * 🇹🇭 ตรวจเลขบัตรประชาชนไทย (เวอร์ชันเข้ม)
+ * - 13 หลัก
+ * - ไม่เป็นเลขซ้ำ
+ * - หลักแรก 1–8
+ * - checksum ถูกต้อง
+ * - blacklist
+ */
+function isValidThaiCitizenID(id) {
+  if (!/^\d{13}$/.test(id)) return false
+  if (/^(\d)\1{12}$/.test(id)) return false
+
+  const firstDigit = parseInt(id[0], 10)
+  if (firstDigit < 1 || firstDigit > 8) return false
+
   let sum = 0
-  for(let i=0;i<12;i++){
-    sum += parseInt(id[i],10) * (13 - i)
+  for (let i = 0; i < 12; i++) {
+    sum += parseInt(id[i], 10) * (13 - i)
   }
-  const check = (11 - (sum % 11)) % 10
-  return check === parseInt(id[12],10)
+  const checkDigit = (11 - (sum % 11)) % 10
+  if (checkDigit !== parseInt(id[12], 10)) return false
+
+  const blacklist = [
+    "1234567890123",
+    "0000000000000"
+  ]
+  if (blacklist.includes(id)) return false
+
+  return true
 }
 
+/**
+ * 🆔 ช่องเดียว: บัตรประชาชน + Passport
+ * - ตัวเลขล้วน → บัตรประชาชนเท่านั้น
+ * - Passport ต้องมีตัวอักษร + ตัวเลข
+ */
 function isValidCitizenOrPassport(value) {
   value = value.trim()
 
-  // 🔴 ตัวเลขล้วน
+  // ตัวเลขล้วน
   if (/^\d+$/.test(value)) {
-    // ต้องเป็นเลขบัตรประชาชนไทย 13 หลัก และผ่าน checksum เท่านั้น
-    if (value.length === 13) {
-      return isValidThaiCitizenID(value)
-    }
-    return false
+    return isValidThaiCitizenID(value)
   }
 
-  // 🌍 Passport (ต้องมี "ตัวอักษร + ตัวเลข" อย่างน้อยอย่างละ 1)
+  // Passport: ต้องมีตัวอักษร + ตัวเลข (6–20 ตัว)
   if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,20}$/.test(value)) {
     return true
   }
@@ -145,86 +147,38 @@ function isValidCitizenOrPassport(value) {
   return false
 }
 
-
-function isValidPhone(p){
+function isValidPhone(p) {
   return /^\d{10}$/.test(p)
-}
-
-/* ================= I18N ================= */
-const i18n = {
-  th:{
-    prefix:"คำนำหน้า",
-    fname:"ชื่อ",
-    lname:"นามสกุล",
-    phone:"เบอร์โทรศัพท์",
-    cid:"เลขบัตรประชาชน / Passport",
-    address:"ที่อยู่",
-    blood:"กรุ๊ปเลือด",
-    email:"อีเมล",
-    slip:"แนบสลิปการโอนเงิน",
-    submit:"สมัครเข้าร่วม",
-    cidErr:"กรุณากรอกเลขบัตรประชาชนที่ถูกต้อง หรือ Passport ที่ถูกต้อง",
-    phoneErr:"เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก",
-    successTitle:"ลงทะเบียนสำเร็จ",
-    successMsg:"ระบบได้รับข้อมูลการสมัครของท่านเรียบร้อยแล้ว กรุณารอการตรวจสอบและอนุมัติจากเจ้าหน้าที่ ผลการอนุมัติจะแจ้งให้ทราบทางอีเมล"
-  },
-  en:{
-    prefix:"Title",
-    fname:"First Name",
-    lname:"Last Name",
-    phone:"Phone",
-    cid:"Citizen ID / Passport",
-    address:"Address",
-    blood:"Blood Group",
-    email:"Email",
-    slip:"Payment Slip",
-    submit:"Register",
-    cidErr:"Please enter a valid Thai Citizen ID or Passport number",
-    phoneErr:"Phone number must be 10 digits",
-    successTitle:"Registration Successful",
-    successMsg:"Your registration has been submitted. Please wait for approval. You will be notified via email."
-  }
-}
-
-let currentLang = "th"
-
-function setLang(lang){
-  currentLang = lang
-  document.documentElement.lang = lang
-
-  title.innerText = i18n[lang].title || title.innerText
-  subtitle.innerText = i18n[lang].subtitle || subtitle.innerText
-  submitBtn.innerText = i18n[lang].submit
-  slipLabel.innerText = i18n[lang].slip
-
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    el.innerText = i18n[lang][el.dataset.i18n]
-  })
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
-    el.placeholder = i18n[lang][el.dataset.i18nPlaceholder]
-  })
 }
 
 /* ================= FORM ================= */
 const loading = document.getElementById("loading")
 const showLoading = v => loading.classList.toggle("hidden", !v)
 
-registerForm.addEventListener("submit", async e=>{
+registerForm.addEventListener("submit", async e => {
   e.preventDefault()
   showLoading(true)
 
   const cid = citizen_id.value.trim()
   const phoneVal = phone.value.trim()
 
-  if(!isValidCitizenOrPassport(cid)){
+  if (!isValidCitizenOrPassport(cid)) {
     showLoading(false)
-    Swal.fire("Error", i18n[currentLang].cidErr, "error")
+    Swal.fire(
+      "ข้อมูลไม่ถูกต้อง",
+      "กรุณากรอกเลขบัตรประชาชนที่ถูกต้อง หรือ Passport ที่ถูกต้อง",
+      "error"
+    )
     return
   }
 
-  if(!isValidPhone(phoneVal)){
+  if (!isValidPhone(phoneVal)) {
     showLoading(false)
-    Swal.fire("Error", i18n[currentLang].phoneErr, "error")
+    Swal.fire(
+      "ข้อมูลไม่ถูกต้อง",
+      "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก",
+      "error"
+    )
     return
   }
 
@@ -233,15 +187,14 @@ registerForm.addEventListener("submit", async e=>{
     .select("id")
     .eq("citizen_id", cid)
 
-  if(dup.length){
+  if (dup.length) {
     showLoading(false)
-    Swal.fire("Warning", "ข้อมูลนี้สมัครแล้ว", "warning")
+    Swal.fire("แจ้งเตือน", "เลขนี้สมัครแล้ว", "warning")
     return
   }
 
   const filePath = `${cid}_${Date.now()}.jpg`
   await sb.storage.from("payment-slips").upload(filePath, slip.files[0])
-
   const slip_url = sb.storage
     .from("payment-slips")
     .getPublicUrl(filePath).data.publicUrl
@@ -261,15 +214,13 @@ registerForm.addEventListener("submit", async e=>{
 
   showLoading(false)
   Swal.fire(
-    i18n[currentLang].successTitle,
-    i18n[currentLang].successMsg,
+    "ลงทะเบียนสำเร็จ",
+    "ระบบได้รับข้อมูลเรียบร้อยแล้ว กรุณารอการตรวจสอบจากเจ้าหน้าที่",
     "success"
   )
 
   e.target.reset()
 })
-
-setLang("th")
 </script>
 
 </body>
