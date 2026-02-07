@@ -20,67 +20,41 @@ body {
 <!-- ================= Loading ================= -->
 <div id="loading" class="hidden fixed inset-0 z-50 flex items-center justify-center">
   <div class="absolute inset-0 bg-sky-900/40 backdrop-blur-sm"></div>
-  <div class="relative bg-white rounded-xl px-8 py-6 shadow text-center">
+  <div class="bg-white px-8 py-6 rounded-xl shadow text-center">
     <div class="w-12 h-12 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin mx-auto mb-3"></div>
-    <p id="loadingText">กำลังอัปโหลดสลิป</p>
+    <p id="loadingText">กำลังตรวจสอบสลิป</p>
   </div>
 </div>
 
 <div class="w-full max-w-xl bg-white rounded-xl shadow overflow-hidden">
 
-<!-- ================= Header ================= -->
+<!-- Header -->
 <div class="bg-sky-600 text-white p-6 text-center relative">
-  <h1 id="title" class="text-2xl font-bold">สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ</h1>
-  <p id="subtitle" class="text-sm mt-1">ระบบรับสมัครอย่างเป็นทางการ</p>
-
-  <div class="absolute top-4 right-4 flex gap-2 text-sm">
-    <button onclick="setLang('th')" class="px-2 py-1 bg-white/20 rounded">TH</button>
-    <button onclick="setLang('en')" class="px-2 py-1 bg-white/20 rounded">EN</button>
-  </div>
+  <h1 class="text-2xl font-bold">สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ</h1>
+  <p class="text-sm mt-1">ระบบรับสมัครอย่างเป็นทางการ</p>
 </div>
 
-<!-- ================= Form ================= -->
 <form id="registerForm" class="p-6 space-y-4">
 
-<select id="prefix" class="w-full border rounded px-3 py-2" required></select>
+<input id="first_name" class="border rounded px-3 py-2 w-full" placeholder="ชื่อ" required>
+<input id="last_name" class="border rounded px-3 py-2 w-full" placeholder="นามสกุล" required>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-  <input id="first_name" class="border rounded px-3 py-2" data-i18n-placeholder="fname" required>
-  <input id="last_name" class="border rounded px-3 py-2" data-i18n-placeholder="lname" required>
-</div>
-
-<input id="phone" class="w-full border rounded px-3 py-2"
-  maxlength="10"
+<input id="phone" class="border rounded px-3 py-2 w-full"
+  placeholder="เบอร์โทรศัพท์"
   oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-  data-i18n-placeholder="phone"
+  maxlength="10"
   required>
 
-<div>
-  <input id="citizen_id" class="w-full border rounded px-3 py-2"
-    maxlength="20"
-    data-i18n-placeholder="cid"
-    required>
-  <p id="idFeedback" class="text-sm mt-1"></p>
-</div>
+<input id="citizen_id" class="border rounded px-3 py-2 w-full"
+  placeholder="เลขบัตรประชาชน / Passport"
+  required>
 
-<textarea id="address" class="w-full border rounded px-3 py-2"
-  data-i18n-placeholder="address" required></textarea>
+<input id="email" type="email" class="border rounded px-3 py-2 w-full" placeholder="อีเมล" required>
 
-<select id="blood_group" class="w-full border rounded px-3 py-2" required>
-  <option value="" data-i18n="blood"></option>
-  <option>A</option><option>B</option><option>AB</option><option>O</option>
-</select>
+<input id="slip" type="file" accept="image/*" required>
 
-<input id="email" type="email" class="w-full border rounded px-3 py-2"
-  data-i18n-placeholder="email" required>
-
-<div>
-  <label id="slipLabel" class="block text-sm mb-1"></label>
-  <input id="slip" type="file" accept="image/*" required>
-</div>
-
-<button id="submitBtn" disabled
-  class="w-full bg-gray-400 text-white py-2 rounded cursor-not-allowed">
+<button id="submitBtn"
+  class="w-full bg-sky-600 text-white py-2 rounded">
   สมัครเข้าร่วม
 </button>
 
@@ -91,171 +65,74 @@ body {
 /* ================= CONFIG ================= */
 const SUPABASE_URL = "https://etnvagsxrrglysavibfe.supabase.co"
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bnZhZ3N4cnJnbHlzYXZpYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTkyMDEsImV4cCI6MjA4NTg5NTIwMX0.CgaLjOq8V3C8y3291TjsZqtxKfheYNe7ddUqzqg77Io"
+const OCR_URL =
+  "https://YOUR_PROJECT_ID.supabase.co/functions/v1/ocr-slip"
+
+const REGISTRATION_FEE = {
+  THB: 500,
+  USD: 15
+}
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-/* ================= I18N ================= */
-const i18n = {
-  th: {
-    title: "สมัครงานวิ่ง โรงเรียนบ้านไม้เรียบ",
-    subtitle: "ระบบรับสมัครอย่างเป็นทางการ",
-    prefixes: [
-      {v:"",t:"คำนำหน้า"},
-      {v:"นาย",t:"นาย"},
-      {v:"นาง",t:"นาง"},
-      {v:"นางสาว",t:"นางสาว"}
-    ],
-    fname:"ชื่อ", lname:"นามสกุล", phone:"เบอร์โทรศัพท์ 10 หลัก",
-    cid:"เลขบัตรประชาชน / Passport",
-    address:"ที่อยู่", blood:"กรุ๊ปเลือด",
-    email:"อีเมล", slip:"แนบสลิปการโอนเงิน",
-    submit:"สมัครเข้าร่วม",
-    validThai:"บัตรประชาชนไทย ✔",
-    validPassNum:"Passport (ตัวเลข) ✔",
-    validPass:"Passport ✔",
-    invalid:"เลขไม่ถูกต้อง"
-  },
-  en: {
-    title:"Race Registration – Ban Mai Riab School",
-    subtitle:"Official Registration System",
-    prefixes:[
-      {v:"",t:"Title"},
-      {v:"Mr.",t:"Mr."},
-      {v:"Mrs.",t:"Mrs."},
-      {v:"Ms.",t:"Ms."}
-    ],
-    fname:"First Name", lname:"Last Name", phone:"Phone number",
-    cid:"Citizen ID / Passport",
-    address:"Address", blood:"Blood Group",
-    email:"Email", slip:"Upload payment slip",
-    submit:"Register",
-    validThai:"Thai Citizen ID ✔",
-    validPassNum:"Passport (numeric) ✔",
-    validPass:"Passport ✔",
-    invalid:"Invalid number"
-  }
-}
-let currentLang="th"
-
-/* ================= Prefix ================= */
-function renderPrefix(){
-  prefix.innerHTML=""
-  i18n[currentLang].prefixes.forEach(p=>{
-    const o=document.createElement("option")
-    o.value=p.v; o.textContent=p.t
-    prefix.appendChild(o)
-  })
-}
-
-/* ================= Language ================= */
-function setLang(l){
-  currentLang=l
-  title.innerText=i18n[l].title
-  subtitle.innerText=i18n[l].subtitle
-  slipLabel.innerText=i18n[l].slip
-  submitBtn.innerText=i18n[l].submit
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
-    el.placeholder=i18n[l][el.dataset.i18nPlaceholder]
-  })
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    el.innerText=i18n[l][el.dataset.i18n]
-  })
-  renderPrefix()
-  triggerRealtimeCheck()
-}
-
-/* ================= Validation ================= */
-const isRepeated=s=>/^(\d)\1+$/.test(s)
-const isSequential=s=>"0123456789".includes(s)||"9876543210".includes(s)
-
-function isValidThaiCID(id){
-  if(!/^\d{13}$/.test(id))return false
-  if(isRepeated(id))return false
-  let sum=0
-  for(let i=0;i<12;i++) sum+=id[i]*(13-i)
-  return ((11-sum%11)%10)==id[12]
-}
-
-function isValidCitizenOrPassport(v){
-  if(/^\d+$/.test(v)){
-    if(v.length===13) return isValidThaiCID(v)
-    if(v.length>=6 && v.length<=9){
-      if(isRepeated(v)||isSequential(v)) return false
-      return true
-    }
-    return false
-  }
-  return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,20}$/.test(v)
-}
-
-/* ================= Button ================= */
-function setSubmitEnabled(ok){
-  submitBtn.disabled=!ok
-  submitBtn.className=ok
-    ?"w-full bg-sky-600 text-white py-2 rounded"
-    :"w-full bg-gray-400 text-white py-2 rounded cursor-not-allowed"
-}
-
-/* ================= Realtime ================= */
-function triggerRealtimeCheck(){
-  const v=citizen_id.value.trim()
-  if(!v){
-    idFeedback.textContent=""
-    setSubmitEnabled(false)
-    return
-  }
-  if(isValidCitizenOrPassport(v)){
-    const t=/^\d{13}$/.test(v)?"validThai":/^\d+$/.test(v)?"validPassNum":"validPass"
-    idFeedback.textContent="✓ "+i18n[currentLang][t]
-    idFeedback.className="text-green-600 text-sm"
-    setSubmitEnabled(true)
-  }else{
-    idFeedback.textContent="✗ "+i18n[currentLang].invalid
-    idFeedback.className="text-red-600 text-sm"
-    setSubmitEnabled(false)
-  }
-}
-citizen_id.addEventListener("input",triggerRealtimeCheck)
-
-/* ================= Submit ================= */
-registerForm.addEventListener("submit",async e=>{
+/* ================= SUBMIT ================= */
+registerForm.addEventListener("submit", async e => {
   e.preventDefault()
-  if(!isValidCitizenOrPassport(citizen_id.value)) return
-
   loading.classList.remove("hidden")
 
-  const cid=citizen_id.value.trim()
-  const filePath=`${cid}_${Date.now()}.jpg`
-  await sb.storage.from("payment-slips").upload(filePath,slip.files[0])
-  const slip_url=sb.storage.from("payment-slips").getPublicUrl(filePath).data.publicUrl
+  try {
+    const cid = citizen_id.value.trim()
+    const ext = slip.files[0].name.split(".").pop()
+    const path = `${cid}_${Date.now()}.${ext}`
 
-  const {error}=await sb.from("registrations").insert({
-    prefix:prefix.value,
-    first_name:first_name.value,
-    last_name:last_name.value,
-    phone:phone.value,
-    citizen_id:cid,
-    address:address.value,
-    blood_group:blood_group.value,
-    email:email.value,
-    slip_url,
-    status:"pending"
-  })
+    await sb.storage.from("payment-slips").upload(path, slip.files[0])
+    const slip_url = sb.storage.from("payment-slips")
+      .getPublicUrl(path).data.publicUrl
 
-  loading.classList.add("hidden")
+    // OCR
+    loadingText.innerText = "กำลังตรวจสอบยอดเงิน..."
+    const ocrRes = await fetch(OCR_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({ imageUrl: slip_url })
+    })
 
-  if(error){
-    Swal.fire("Error","บันทึกไม่สำเร็จ","error")
-    return
+    const ocr = await ocrRes.json()
+
+    if (!ocr.valid) {
+      throw "ไม่ผ่าน OCR"
+    }
+
+    const expected = REGISTRATION_FEE[ocr.currency]
+    if (!expected || ocr.amount !== expected) {
+      throw `ยอดเงินไม่ถูกต้อง (${ocr.amount} ${ocr.currency})`
+    }
+
+    await sb.from("registrations").insert({
+      first_name: first_name.value,
+      last_name: last_name.value,
+      phone: phone.value,
+      citizen_id: cid,
+      email: email.value,
+      slip_url,
+      status: "pending",
+      ocr_amount: ocr.amount,
+      ocr_currency: ocr.currency,
+      ocr_text: ocr.text
+    })
+
+    Swal.fire("สำเร็จ", "ระบบได้รับข้อมูลแล้ว", "success")
+    registerForm.reset()
+
+  } catch (err) {
+    Swal.fire("ไม่สำเร็จ", err.toString(), "error")
   }
 
-  Swal.fire("สำเร็จ","ระบบได้รับข้อมูลแล้ว","success")
-  registerForm.reset()
-  setSubmitEnabled(false)
-  idFeedback.textContent=""
+  loading.classList.add("hidden")
 })
-
-/* ================= INIT ================= */
-setLang("th")
 </script>
 
 </body>
