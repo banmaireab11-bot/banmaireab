@@ -49,9 +49,7 @@
 <!-- ================= Form ================= -->
 <form id="registerForm" class="p-6 space-y-4">
 
-<select id="prefix" class="w-full border rounded px-3 py-2" required>
-  <!-- options จะถูกเติมด้วย JS -->
-</select>
+<select id="prefix" class="w-full border rounded px-3 py-2" required></select>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
   <input id="first_name" class="border rounded px-3 py-2"
@@ -137,9 +135,7 @@ const i18n = {
     validThai: "บัตรประชาชนไทย ✔",
     validPassNum: "Passport (ตัวเลข) ✔",
     validPass: "Passport ✔",
-    invalid: "เลขไม่ถูกต้อง",
-    success: "ลงทะเบียนสำเร็จ",
-    successMsg: "กรุณารอการตรวจสอบจากเจ้าหน้าที่"
+    invalid: "เลขไม่ถูกต้อง"
   },
   en: {
     title: "Race Registration – Ban Mai Riab School",
@@ -163,9 +159,7 @@ const i18n = {
     validThai: "Thai Citizen ID ✔",
     validPassNum: "Passport (numeric) ✔",
     validPass: "Passport ✔",
-    invalid: "Invalid number",
-    success: "Registration successful",
-    successMsg: "Please wait for approval"
+    invalid: "Invalid number"
   }
 }
 
@@ -173,25 +167,22 @@ let currentLang = "th"
 
 /* ================= PREFIX ================= */
 function renderPrefixOptions() {
-  const select = document.getElementById("prefix")
-  const currentValue = select.value
-  select.innerHTML = ""
-
+  const s = prefix
+  const v = s.value
+  s.innerHTML = ""
   i18n[currentLang].prefixes.forEach(p => {
-    const opt = document.createElement("option")
-    opt.value = p.value
-    opt.textContent = p.text
-    select.appendChild(opt)
+    const o = document.createElement("option")
+    o.value = p.value
+    o.textContent = p.text
+    s.appendChild(o)
   })
-
-  select.value = currentValue || ""
+  s.value = v || ""
 }
 
 /* ================= LANGUAGE ================= */
 function setLang(lang) {
   currentLang = lang
   document.documentElement.lang = lang
-
   title.innerText = i18n[lang].title
   subtitle.innerText = i18n[lang].subtitle
   slipLabel.innerText = i18n[lang].slip
@@ -201,7 +192,6 @@ function setLang(lang) {
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
     el.placeholder = i18n[lang][el.dataset.i18nPlaceholder]
   })
-
   document.querySelectorAll("[data-i18n]").forEach(el => {
     el.innerText = i18n[lang][el.dataset.i18n]
   })
@@ -214,24 +204,28 @@ function setLang(lang) {
 function isSequentialNumber(str) {
   return "0123456789".includes(str) || "9876543210".includes(str)
 }
-
+function isRepeatedNumber(str) {
+  return /^(\d)\1+$/.test(str)
+}
 function isValidThaiCitizenID(id) {
   if (!/^\d{13}$/.test(id)) return false
-  if (/^(\d)\1{12}$/.test(id)) return false
+  if (isRepeatedNumber(id)) return false
   let sum = 0
   for (let i = 0; i < 12; i++) sum += id[i] * (13 - i)
   return ((11 - sum % 11) % 10) === parseInt(id[12])
 }
-
 function isValidCitizenOrPassport(v) {
   if (/^\d+$/.test(v)) {
     if (v.length === 13) return isValidThaiCitizenID(v)
-    if (v.length >= 6 && v.length <= 9 && !isSequentialNumber(v)) return true
+    if (v.length >= 6 && v.length <= 9) {
+      if (isSequentialNumber(v)) return false
+      if (isRepeatedNumber(v)) return false   // 🔴 ปิด 000000
+      return true
+    }
     return false
   }
   return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,20}$/.test(v)
 }
-
 function getIdType(v) {
   if (/^\d+$/.test(v)) {
     if (v.length === 13) return "thai"
@@ -239,7 +233,6 @@ function getIdType(v) {
   }
   return "passport"
 }
-
 function isValidPhone(p) {
   return /^\d{10}$/.test(p)
 }
@@ -253,18 +246,13 @@ function setSubmitEnabled(ok) {
 }
 
 /* ================= REALTIME ================= */
-const idInput = citizen_id
-const idFeedback = document.getElementById("idFeedback")
-
 function triggerRealtimeCheck() {
-  const v = idInput.value.trim()
-
+  const v = citizen_id.value.trim()
   if (!v) {
     idFeedback.textContent = ""
     setSubmitEnabled(false)
     return
   }
-
   if (isValidCitizenOrPassport(v)) {
     const t = getIdType(v)
     idFeedback.textContent =
@@ -282,8 +270,7 @@ function triggerRealtimeCheck() {
     setSubmitEnabled(false)
   }
 }
-
-idInput.addEventListener("input", triggerRealtimeCheck)
+citizen_id.addEventListener("input", triggerRealtimeCheck)
 
 /* ================= INIT ================= */
 setLang("th")
